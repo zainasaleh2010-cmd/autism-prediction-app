@@ -75,13 +75,6 @@ input_encoded = input_df.apply(LabelEncoder().fit_transform)
 # -----------------------------
 if st.button("اعمل التوقع"):
     prediction = model.predict(input_encoded)
-    if prediction[0] == 1:
-        st.error("⚠️ النتيجة: هناك احتمالية للتوحد")
-    else:
-        st.success("✅ النتيجة: لا يوجد توحد")
-
-if st.button("اعمل التوقع"):
-    prediction = model.predict(input_encoded)
     proba = model.predict_proba(input_encoded)
     confidence = proba[0][prediction[0]] * 100
 
