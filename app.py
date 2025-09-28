@@ -80,3 +80,14 @@ if st.button("اعمل التوقع"):
     else:
         st.success("✅ النتيجة: لا يوجد توحد")
 
+if st.button("اعمل التوقع"):
+    prediction = model.predict(input_encoded)
+    proba = model.predict_proba(input_encoded)
+    confidence = proba[0][prediction[0]] * 100
+
+    if prediction[0] == 1:
+        st.error(f"⚠️ النتيجة: هناك احتمالية للتوحد")
+    else:
+        st.success(f"✅ النتيجة: لا يوجد توحد")
+    
+    st.write(f"نسبة الثقة في التنبؤ: {confidence:.2f}%")
