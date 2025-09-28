@@ -1,8 +1,7 @@
 import streamlit as st
 import pickle
 
-with open("model.pkl", "wb") as f:
-    model = pickle.load(f)
+
 
 st.set_page_config(page_title="Autism Prediction App", page_icon="🧠", layout="centered")
 
