@@ -73,7 +73,7 @@ input_encoded = input_df.apply(LabelEncoder().fit_transform)
 # -----------------------------
 # زر التنبؤ
 # -----------------------------
-if st.button("🔮 اعمل التوقع"):
+if st.button("اعمل التوقع"):
     prediction = model.predict(input_encoded)
     if prediction[0] == 1:
         st.error("⚠️ النتيجة: هناك احتمالية للتوحد")
