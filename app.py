@@ -80,7 +80,7 @@ input_data = [[
 # ----------------------------
 # التنبؤ
 # ----------------------------
-if st.button("🔮 اعمل التوقع"):
+if st.button("اعمل التوقع"):
     rf_pred = rf_model.predict(input_data)
     rf_proba = rf_model.predict_proba(input_data)
 
