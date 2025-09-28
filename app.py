@@ -4,7 +4,7 @@ import pickle
 # -----------------------------
 # تحميل الموديل
 # -----------------------------
-with open("model.pkl", "rb") as f:
+with open(autism_app.ipynb) as f:
     model = pickle.load(f)
 
 # -----------------------------
