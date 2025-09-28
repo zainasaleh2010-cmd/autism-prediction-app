@@ -71,11 +71,10 @@ radiation = st.selectbox("تعرض لإشعاع:", [0, 1])
 Gender = st.selectbox("الجنس:", [0, 1])  # 0=Female, 1=Male
 twinautistic = st.selectbox("توائم:", [0, 1])
 motherage = st.number_input("عمر الأم (كفئة رقمية):", min_value=0, max_value=100, value=30)
-months = st.number_input("عمر الطفل بالأشهر:", min_value=0, max_value=240, value=24)
 
 input_data = [[
     autisticsibiling, neurologicaldiseases, GDM, painkillers, antibiotics,
-    smoke, radiation, Gender, twinautistic, motherage, months
+    smoke, radiation, Gender, twinautistic, motherage
 ]]
 
 # ----------------------------
