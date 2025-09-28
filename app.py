@@ -1,86 +1,102 @@
 import streamlit as st
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import LabelEncoder
+import random
 from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn import neighbors
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import classification_report, confusion_matrix
 
-st.set_page_config(page_title="Autism Prediction App")
-st.title("🧩 نظام توقع التوحد عند الأطفال")
-st.write("ادخلي بيانات الطفل لنقوم بمحاولة التنبؤ:")
+# ----------------------------
+# تحميل البيانات
+# ----------------------------
+@st.cache_data
+def load_data():
+    autism = pd.read_csv("AUTISMM.csv")  # لازم يكون ملف AUTISMM.csv بنفس مجلد المشروع
+    autism = autism.drop(['num'], axis=1)
 
-# -----------------------------
-# إدخالات المستخدم
-# -----------------------------
-gender = st.selectbox("جنس الطفل:", ["Male", "Female"])
-age_child = st.number_input("عمر الطفل:", min_value=0, max_value=18, value=5)
-mother_age = st.number_input("عمر الأم:", min_value=15, max_value=60, value=30)
-father_age = st.number_input("عمر الأب:", min_value=15, max_value=80, value=35)
+    # تعويض القيم الفارغة بنفس طريقتك
+    mylist = ['Male', 'Female']
+    list2 = ['30-40', '20-30']
 
-smoke = st.selectbox("هل الأم كانت تدخن أثناء الحمل؟", ["No", "Yes"])
-family_history = st.selectbox("هل يوجد تاريخ عائلي للتوحد؟", ["No", "Yes"])
-premature = st.selectbox("هل الطفل ولد قبل أوانه؟", ["No", "Yes"])
-complications = st.selectbox("هل كانت هناك مضاعفات عند الولادة؟", ["No", "Yes"])
+    autism.motherage = autism.motherage.fillna(random.choice(list2))
+    autism.smoke = autism.smoke.fillna(value='mode')
+    autism.autisticsibiling = autism.autisticsibiling.fillna(value='mode')
+    autism.painkillers = autism.painkillers.fillna(value='No')
+    autism.Gender = autism.Gender.fillna(random.choice(mylist))
+    autism.antibiotics = autism.antibiotics.fillna(value='No')
+    autism.radiation = autism.radiation.fillna(value='No')
+    autism.twinautistic = autism.twinautistic.fillna(value='no_twin')
 
-speech_delay = st.selectbox("هل يوجد تأخر في الكلام؟", ["No", "Yes"])
-eye_contact = st.selectbox("هل الطفل يتجنب التواصل البصري؟", ["No", "Yes"])
-social_interaction = st.selectbox("هل الطفل يعاني من صعوبات اجتماعية؟", ["No", "Yes"])
+    # فصل رقمي/تصنيفي + ترميز
+    features_num = autism.select_dtypes(exclude=['object'])
+    features_cat = autism.select_dtypes(['object'])
+    features_cat = features_cat.apply(LabelEncoder().fit_transform)
 
-# -----------------------------
-# بيانات وهمية لتدريب الموديل داخل الكود
-# (لنستخدمها مباشرة بدون pickle)
-# -----------------------------
-# مثال سريع للبيانات، استخدمي بياناتك الحقيقية لو عندك
-data_dict = {
-    "Gender": ["Male","Female","Male","Female"],
-    "age_child": [5,6,4,7],
-    "mother_age": [30,32,28,35],
-    "father_age": [35,36,33,40],
-    "smoke": ["No","Yes","No","No"],
-    "family_history": ["No","Yes","No","No"],
-    "premature": ["No","Yes","No","No"],
-    "complications": ["No","No","Yes","No"],
-    "speech_delay": ["No","Yes","No","No"],
-    "eye_contact": ["No","Yes","No","No"],
-    "social_interaction": ["No","Yes","No","No"],
-    "autistic": [0,1,0,0]
-}
-df = pd.DataFrame(data_dict)
+    autismnew = features_cat.join(features_num)
+    return autismnew
 
-# -----------------------------
-# تجهيز البيانات
-# -----------------------------
-features = df.drop("autistic", axis=1)
-target = df["autistic"]
+autismnew = load_data()
+X = autismnew.copy()
+y = X.pop('autistic')
 
-# تحويل القيم التصنيفية لأرقام
-features = features.apply(LabelEncoder().fit_transform)
-
+# ----------------------------
 # تدريب الموديل
-model = RandomForestClassifier(n_estimators=100, random_state=0)
-model.fit(features, target)
+# ----------------------------
+X_train, X_valid, y_train, y_valid = train_test_split(X, y, train_size=0.7, test_size=0.3, random_state=0)
 
-# -----------------------------
-# تحويل مدخلات المستخدم لأرقام
-# -----------------------------
-input_df = pd.DataFrame([[
-    gender, age_child, mother_age, father_age,
-    smoke, family_history, premature, complications,
-    speech_delay, eye_contact, social_interaction
-]], columns=features.columns)
+# Random Forest
+rf_model = RandomForestClassifier(n_estimators=100, random_state=0)
+rf_model.fit(X_train, y_train)
 
-input_encoded = input_df.apply(LabelEncoder().fit_transform)
+# KNN
+knn_model = neighbors.KNeighborsClassifier(n_neighbors=3)
+knn_model.fit(X_train, y_train)
 
-# -----------------------------
-# زر التنبؤ
-# -----------------------------
-if st.button("اعمل التوقع"):
-    prediction = model.predict(input_encoded)
-    proba = model.predict_proba(input_encoded)
-    confidence = proba[0][prediction[0]] * 100
+# ----------------------------
+# واجهة Streamlit
+# ----------------------------
+st.set_page_config(page_title="Autism Prediction", page_icon="🧩")
+st.title("🧩 تطبيق توقع التوحد")
+st.write("ادخل بيانات الطفل/العائلة لتجربة التنبؤ:")
 
-    if prediction[0] == 1:
-        st.error(f"⚠️ النتيجة: هناك احتمالية للتوحد")
+# إدخالات المستخدم (لازم نفس ترتيب الأعمدة في X)
+autisticsibiling = st.selectbox("هل يوجد أخ/أخت مصاب بالتوحد؟", [0, 1])
+neurologicaldiseases = st.selectbox("هل يوجد أمراض عصبية بالعائلة؟", [0, 1])
+GDM = st.selectbox("سكري الحمل:", [0, 1])
+painkillers = st.selectbox("استخدام مسكنات أثناء الحمل:", [0, 1])
+antibiotics = st.selectbox("استخدام مضادات حيوية:", [0, 1])
+smoke = st.selectbox("تدخين الأم:", [0, 1])
+radiation = st.selectbox("تعرض لإشعاع:", [0, 1])
+Gender = st.selectbox("الجنس:", [0, 1])  # 0=Female, 1=Male
+twinautistic = st.selectbox("توائم:", [0, 1])
+motherage = st.number_input("عمر الأم (كفئة رقمية):", min_value=0, max_value=100, value=30)
+months = st.number_input("عمر الطفل بالأشهر:", min_value=0, max_value=240, value=24)
+
+input_data = [[
+    autisticsibiling, neurologicaldiseases, GDM, painkillers, antibiotics,
+    smoke, radiation, Gender, twinautistic, motherage, months
+]]
+
+# ----------------------------
+# التنبؤ
+# ----------------------------
+if st.button("🔮 اعمل التوقع"):
+    rf_pred = rf_model.predict(input_data)
+    rf_proba = rf_model.predict_proba(input_data)
+
+    knn_pred = knn_model.predict(input_data)
+    knn_proba = knn_model.predict_proba(input_data)
+
+    st.subheader("📊 نتائج التوقع:")
+
+    if rf_pred[0] == 1:
+        st.error(f"RandomForest: يوجد احتمالية للتوحد ({rf_proba[0][1]*100:.2f}%)")
     else:
-        st.success(f"✅ النتيجة: لا يوجد توحد")
-    
-    st.write(f"نسبة الثقة في التنبؤ: {confidence:.2f}%")
+        st.success(f"RandomForest: لا يوجد توحد ({rf_proba[0][0]*100:.2f}%)")
+
+    if knn_pred[0] == 1:
+        st.error(f"KNN: يوجد احتمالية للتوحد ({knn_proba[0][1]*100:.2f}%)")
+    else:
+        st.success(f"KNN: لا يوجد توحد ({knn_proba[0][0]*100:.2f}%)")
+
