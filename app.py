@@ -7,15 +7,11 @@ from sklearn import neighbors
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import classification_report, confusion_matrix
 
-# ----------------------------
-# تحميل البيانات
-# ----------------------------
 @st.cache_data
 def load_data():
-    autism = pd.read_csv("AUTISMM.csv")  # لازم يكون ملف AUTISMM.csv بنفس مجلد المشروع
+    autism = pd.read_csv("AUTISMM.csv")  
     autism = autism.drop(['num'], axis=1)
 
-    # تعويض القيم الفارغة بنفس طريقتك
     mylist = ['Male', 'Female']
     list2 = ['30-40', '20-30']
 
@@ -28,7 +24,6 @@ def load_data():
     autism.radiation = autism.radiation.fillna(value='No')
     autism.twinautistic = autism.twinautistic.fillna(value='no_twin')
 
-    # فصل رقمي/تصنيفي + ترميز
     features_num = autism.select_dtypes(exclude=['object'])
     features_cat = autism.select_dtypes(['object'])
     features_cat = features_cat.apply(LabelEncoder().fit_transform)
@@ -40,48 +35,36 @@ autismnew = load_data()
 X = autismnew.copy()
 y = X.pop('autistic')
 
-# ----------------------------
-# تدريب الموديل
-# ----------------------------
 X_train, X_valid, y_train, y_valid = train_test_split(X, y, train_size=0.7, test_size=0.3, random_state=0)
 
-# Random Forest
 rf_model = RandomForestClassifier(n_estimators=100, random_state=0)
 rf_model.fit(X_train, y_train)
 
-# KNN
 knn_model = neighbors.KNeighborsClassifier(n_neighbors=3)
 knn_model.fit(X_train, y_train)
 
-# ----------------------------
-# واجهة Streamlit
-# ----------------------------
-st.set_page_config(page_title="Autism Prediction")
-st.title("تطبيق توقع التوحد")
-st.write("ادخل بيانات الطفل/العائلة لتجربة التنبؤ:")
+st.set_page_config(page_title="Autism Prediction", page_icon="🧩")
+st.title("🧩 تطبيق توقع احتمالية التوحد")
+st.write(" ادخل بيانات الطفل/العائلة لبدء التنبؤ")
 
-# إدخالات المستخدم (لازم نفس ترتيب الأعمدة في X)
-autisticsibiling = st.selectbox("هل يوجد أخ/أخت مصاب بالتوحد؟", [0, 1])
-neurologicaldiseases = st.selectbox("هل يوجد أمراض عصبية بالعائلة؟", [0, 1])
+autisticsibiling = st.selectbox("هل يوجد أخ/أخت مصاب بالتوحد(اذا كانت الاجابة نعم اضغط 1 واذا كانت لا اضغط 0)؟", [0, 1])
+neurologicaldiseases = st.selectbox("(اذا كانت الاجابة نعم اضغط 1 واذا كانت لا اضغط 0)هل يوجد أمراض عصبية بالعائلة؟", [0, 1])
 GDM = st.selectbox("سكري الحمل:", [0, 1])
-painkillers = st.selectbox("استخدام مسكنات أثناء الحمل:", [0, 1])
-antibiotics = st.selectbox("استخدام مضادات حيوية:", [0, 1])
-smoke = st.selectbox("تدخين الأم:", [0, 1])
-radiation = st.selectbox("تعرض لإشعاع:", [0, 1])
+painkillers = st.selectbox("(اذا كانت الاجابة نعم اضغط 1 واذا كانت لا اضغط 0)استخدام مسكنات أثناء الحمل:", [0, 1])
+antibiotics = st.selectbox("(اذا كانت الاجابة نعم اضغط 1 واذا كانت لا اضغط 0)استخدام مضادات حيوية:", [0, 1])
+smoke = st.selectbox("(اذا كانت الاجابة نعم اضغط 1 واذا كانت لا اضغط 0)هل كانت الام مدخنه ؟", [0, 1])
+radiation = st.selectbox("(اذا كانت الاجابة نعم اضغط 1 واذا كانت لا اضغط 0)هل تعرض الجنين الى اشعة ؟", [0, 1])
 Gender = st.selectbox("الجنس:", [0, 1])  # 0=Female, 1=Male
 twinautistic = st.selectbox("توائم:", [0, 1])
-motherage = st.number_input("عمر الأم (كفئة رقمية):", min_value=0, max_value=100, value=30)
-months = st.number_input("عمر الطفل بالأشهر:", min_value=0, max_value=240, value=24)
+motherage = st.number_input("عمر الأم ((اختار العمر بين 20 و 30 او بين 30 و40)):", min_value=20-30, max_value=30-40)
+months = st.number_input("عدد اشهر الحمل:", min_value=1, max_value=10)
 
 input_data = [[
     autisticsibiling, neurologicaldiseases, GDM, painkillers, antibiotics,
     smoke, radiation, Gender, twinautistic, motherage, months
 ]]
 
-# ----------------------------
-# التنبؤ
-# ----------------------------
-if st.button("اعمل التوقع"):
+if st.button(" اضغط لبدء التوقع"):
     rf_pred = rf_model.predict(input_data)
     rf_proba = rf_model.predict_proba(input_data)
 
@@ -91,13 +74,8 @@ if st.button("اعمل التوقع"):
     st.subheader("📊 نتائج التوقع:")
 
     if rf_pred[0] == 1:
-        st.error(f"RandomForest: يوجد احتمالية للتوحد ({rf_proba[0][1]*100:.2f}%)")
+        st.error(f"يوجد احتمالية للتوحد ({rf_proba[0][1]*100:.2f}%)")
     else:
-        st.success(f"RandomForest: لا يوجد توحد ({rf_proba[0][0]*100:.2f}%)")
-
-    if knn_pred[0] == 1:
-        st.error(f"KNN: يوجد احتمالية للتوحد ({knn_proba[0][1]*100:.2f}%)")
-    else:
-        st.success(f"KNN: لا يوجد توحد ({knn_proba[0][0]*100:.2f}%)")
+        st.success(f"لا يوجد احتمالية توحد ({rf_proba[0][0]*100:.2f}%)")
 
 
